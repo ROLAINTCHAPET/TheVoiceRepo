@@ -6,6 +6,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 
+// Résolution des chemins __dirname pour ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -16,6 +17,10 @@ const VOTES_FILE = path.join(__dirname, 'votes.json');
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+
+// ----------------------
+// Gestion des votes
+// ----------------------
 
 // Lire les votes depuis le fichier
 function readVotes() {
@@ -31,8 +36,11 @@ function writeVotes(votes) {
   fs.writeFileSync(VOTES_FILE, JSON.stringify(votes, null, 2));
 }
 
-// SSE clients
+// ----------------------
+// SSE pour notifier le frontend
+// ----------------------
 let clients = [];
+
 app.get('/events', (req, res) => {
   res.set({
     'Content-Type': 'text/event-stream',
@@ -48,7 +56,6 @@ app.get('/events', (req, res) => {
   });
 });
 
-// Notifier tous les clients
 function notifyClients(event, data) {
   clients.forEach(client => {
     client.write(`event: ${event}\n`);
@@ -56,11 +63,16 @@ function notifyClients(event, data) {
   });
 }
 
-// API votes
+// ----------------------
+// Endpoints API votes
+// ----------------------
+
+// Récupérer tous les votes
 app.get('/votes', (req, res) => {
   res.json(readVotes());
 });
 
+// Ajouter un vote
 app.post('/votes', (req, res) => {
   const { candidateId, receiptPreviewUrl } = req.body;
   const votes = readVotes();
@@ -75,9 +87,14 @@ app.post('/votes', (req, res) => {
 
   votes.push(newVote);
   writeVotes(votes);
+
+  // Notifier les clients d'un nouveau vote
+  notifyClients('voteCreated', newVote);
+
   res.json(newVote);
 });
 
+// Attacher un reçu à un vote
 app.post('/votes/:id/receipt', (req, res) => {
   const voteId = req.params.id;
   const { receiptPreviewUrl } = req.body;
@@ -91,6 +108,7 @@ app.post('/votes/:id/receipt', (req, res) => {
   res.json(votes[voteIndex]);
 });
 
+// Valider un vote (admin)
 app.put('/votes/:id/validate', (req, res) => {
   const voteId = req.params.id;
   const votes = readVotes();
@@ -107,15 +125,20 @@ app.put('/votes/:id/validate', (req, res) => {
   res.json(votes[voteIndex]);
 });
 
+// ----------------------
 // Servir le frontend Angular
-const angularDistPath = path.join(__dirname, '../frontend/dist/frontend'); // Vérifie ton outputPath
+// ----------------------
+const angularDistPath = path.join(__dirname, '../frontend/dist/demo'); // Vérifie ton outputPath Angular
 app.use(express.static(angularDistPath));
 
+// Toutes les autres routes retournent index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(angularDistPath, 'index.html'));
 });
 
+// ----------------------
 // Lancer le serveur
+// ----------------------
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
