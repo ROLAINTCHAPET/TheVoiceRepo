@@ -2,17 +2,17 @@
   "name": "the-voice",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "main": "backend/server.js",
   "scripts": {
     "ng": "ng",
-    "build:frontend": "cd frontend && npm install && ng build --configuration production",
-    "start": "node server.js"
+    "start": "node backend/server.js",
+    "postinstall": "cd frontend && npm install && npm run build"
   },
   "dependencies": {
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "rxjs": "^7.8.1"
+    "express": "^4.19.2"
   },
   "devDependencies": {
     "@angular/cli": "^20.0.0",
