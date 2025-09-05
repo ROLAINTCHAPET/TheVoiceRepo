@@ -2,11 +2,10 @@
   "name": "the-voice",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "main": "backend/server.js",
   "scripts": {
     "ng": "ng",
-    "start": "node backend/server.js",
+    "start": "node server.js",
     "build": "cd frontend && npm install && npm run build"
   },
   "dependencies": {
