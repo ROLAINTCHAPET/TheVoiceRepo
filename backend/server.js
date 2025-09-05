@@ -128,7 +128,7 @@ app.put('/votes/:id/validate', (req, res) => {
 // ----------------------
 // Servir le frontend Angular
 // ----------------------
-const angularDistPath = path.join(__dirname, '../frontend/dist/demo'); // Vérifie ton outputPath Angular
+const angularDistPath = path.join(__dirname, '../dist/demo'); // Vérifie ton outputPath Angular
 app.use(express.static(angularDistPath));
 
 // Toutes les autres routes retournent index.html
