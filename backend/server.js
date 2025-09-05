@@ -1,13 +1,19 @@
-const path = require('path');
-const fs = require('fs');
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
+// backend/server.js
+import fs from 'fs';
+import path from 'path';
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const VOTES_FILE = path.join(__dirname, 'votes.json');
 
+// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
@@ -25,13 +31,36 @@ function writeVotes(votes) {
   fs.writeFileSync(VOTES_FILE, JSON.stringify(votes, null, 2));
 }
 
-// Obtenir tous les votes
-app.get('/votes', (req, res) => {
-  const votes = readVotes();
-  res.json(votes);
+// SSE clients
+let clients = [];
+app.get('/events', (req, res) => {
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  });
+  res.flushHeaders();
+
+  clients.push(res);
+
+  req.on('close', () => {
+    clients = clients.filter(client => client !== res);
+  });
 });
 
-// Ajouter un vote
+// Notifier tous les clients
+function notifyClients(event, data) {
+  clients.forEach(client => {
+    client.write(`event: ${event}\n`);
+    client.write(`data: ${JSON.stringify(data)}\n\n`);
+  });
+}
+
+// API votes
+app.get('/votes', (req, res) => {
+  res.json(readVotes());
+});
+
 app.post('/votes', (req, res) => {
   const { candidateId, receiptPreviewUrl } = req.body;
   const votes = readVotes();
@@ -49,7 +78,6 @@ app.post('/votes', (req, res) => {
   res.json(newVote);
 });
 
-// Attacher un reçu à un vote existant
 app.post('/votes/:id/receipt', (req, res) => {
   const voteId = req.params.id;
   const { receiptPreviewUrl } = req.body;
@@ -63,11 +91,6 @@ app.post('/votes/:id/receipt', (req, res) => {
   res.json(votes[voteIndex]);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
-
-// Valider un vote
 app.put('/votes/:id/validate', (req, res) => {
   const voteId = req.params.id;
   const votes = readVotes();
@@ -78,33 +101,21 @@ app.put('/votes/:id/validate', (req, res) => {
   votes[voteIndex].status = 'confirmed';
   writeVotes(votes);
 
-  // ✅ notifier tous les clients
+  // Notifier tous les clients que le vote est validé
   notifyClients('voteValidated', votes[voteIndex]);
 
   res.json(votes[voteIndex]);
 });
 
-let clients = [];
+// Servir le frontend Angular
+const angularDistPath = path.join(__dirname, '../frontend/dist/frontend'); // Vérifie ton outputPath
+app.use(express.static(angularDistPath));
 
-app.get('/events', (req, res) => {
-  res.set({
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-  });
-  res.flushHeaders();
-
-  clients.push(res);
-
-  req.on('close', () => {
-    clients = clients.filter(client => client !== res);
-  });
+app.get('*', (req, res) => {
+  res.sendFile(path.join(angularDistPath, 'index.html'));
 });
 
-// Fonction pour notifier les clients
-function notifyClients(event, data) {
-  clients.forEach(client => {
-    client.write(`event: ${event}\n`);
-    client.write(`data: ${JSON.stringify(data)}\n\n`);
-  });
-}
+// Lancer le serveur
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
