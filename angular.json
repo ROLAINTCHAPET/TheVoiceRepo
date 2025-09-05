@@ -8,7 +8,7 @@
     "demo": {
       "projectType": "application",
       "root": "",
-      "sourceRoot": "src",
+      "sourceRoot": "frontend",
       "prefix": "app",
       "schematics": {},
       "architect": {
@@ -16,12 +16,12 @@
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
             "outputPath": "dist/demo",
-            "index": "src/index.html",
-            "main": "src/main.ts",
+            "index": "frontend/src/index.html",
+            "main": "frontend/src/main.ts",
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
-            "assets": ["src/favicon.ico", "src/assets"],
-            "styles": ["src/global_styles.css"],
+            "assets": ["frontend/src/favicon.ico", "src/assets"],
+            "styles": ["frontend/src/global_styles.css"],
             "scripts": []
           },
           "configurations": {
